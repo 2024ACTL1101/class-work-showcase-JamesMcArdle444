@@ -44,6 +44,8 @@ amd_df <- amd_df[, c("date", "close")]
 #### Plotting the Data
 Plot the closing prices over time to visualize the price movement.
 ```r
+# AMD share price data is plotted do that price growth and market cycles can be analysed. Dat
+e is plotted on the horizontal axis, closing price is plotted on the vertical axis.
 plot(amd_df$date, amd_df$close,'l')
 ```
 
@@ -60,26 +62,102 @@ Implement the trading algorithm as per the instructions. You should initialize n
 
 
 ```r
+# trade-type, costs_proceeds and accumulated_shares columns were initialized so that the algo
+rithm could be implemented.
 # Initialize columns for trade type, cost/proceeds, and accumulated shares in amd_df
 amd_df$trade_type <- NA
-amd_df$costs_proceeds <- NA  # Corrected column name
-amd_df$accumulated_shares <- 0  # Initialize if needed for tracking
-
-# Initialize variables for trading logic
-previous_price <- 0
+amd_df$costs_proceeds <- NA # Corrected column name
+amd_df$accumulated_shares <- 0 # Initialize if needed for tracking
+# A variable for share_size was created and set to 100 so that each transaction is of a stand
+ard size and according to the algorithms outline. A start_date and end_date variable was crea
+ted so that the trading period could easily be adjusted. Initially, start_date and end_date a
+re set so that the whole dataset is captured.
 share_size <- 100
 accumulated_shares <- 0
+start_date <- 1
+end_date <- nrow(amd_df)
+# A for loop is used to ensure that each of the scenario's outlined in the trading algorithm
+brief are captured by the algorithm. The for loop using a variable 'i', which loops for each
+datapoint between the start_date and end_date.
+for (i in start_date:end_date) {
 
-for (i in 1:nrow(amd_df)) {
-# Fill your code here
+ # AMD shares should always be bought on the first data point of the trading period, i = st
+art_date. As such, trade_type is set to buy, and costs_proceeds is set to the clos
+ing price multiplied by the share_size of 100 (as a negative to reflect money flowing out). A
+ccumulated_shares starts at the value of the share_size, 100.
+ if (i == start_date) {
+ amd_df$trade_type[i] <- "Buy"
+ amd_df$costs_proceeds[i] <- -amd_df$close[i] * share_size
+ amd_df$accumulated_shares[i] <- share_size
+
+ # In contrast, all AMD shares should be sold on the last data point of the trading perio
+d, i = end_date. As such, trade_type is set to sell. It is assumed that no more shares will b
+e bought on the final day. Hence, the value of accumulated_shares is set to that of the previ
+ous day. This value is multiplied by AMD_df's closing price to return the proceeds from the s
+ale.
+ } else if (i == end_date) {
+
+ amd_df$trade_type[i] <- "Sell"
+ amd_df$accumulated_shares[i] <- amd_df$accumulated_shares[i - 1]
+ amd_df$costs_proceeds[i] <- amd_df$close[i] * amd_df$accumulated_shares[i]
+
+ # If the closing price of the current data point is less than the closing price of the pr
+evious data point, i.e. AMD's share price has fallen since the previous day, then a Buy trade
+is executed. 100 shares are bought at the current closing price (a negative of the current cl
+osing price is used to reflect money flowing out) and the accumulated_shares value increases
+by 100.
+ } else if (amd_df$close[i] < amd_df$close[i - 1]) {
+ amd_df$trade_type[i] <- "Buy"
+ amd_df$costs_proceeds[i] <- -amd_df$close[i] * 100
+ amd_df$accumulated_shares[i] <- amd_df$accumulated_shares[i - 1] + 100
+
+ # If all other conditions are not met, trade_type and costs_proceeds are not updated. Fur
+ther, as no more shares have been purchased, the accumulated share price is left at the same
+value of the previous data point.
+ } else {
+ amd_df$accumulated_shares[i] <- amd_df$accumulated_shares[i - 1]
+ }
 }
+
 ```
 
 
 ### Step 3: Customize Trading Period
 - Define a trading period you wanted in the past five years 
 ```r
-# Fill your code here
+# Data-frame values were reset so that data not included in the specific trading period do no
+t impact future ROI and profitability calculations.
+amd_df$trade_type <- NA
+amd_df$costs_proceeds <- NA
+amd_df$accumulated_shares <- NA
+# The selected start and end dates were selected. The index values for the start and end date
+s were found using the which function so that they could be used within the for loop.
+start_date <- which(amd_df$date == "2023-01-31")
+end_date <- which(amd_df$ date == "2024-05-17")
+# No changes were made to the original trading algorithm.
+for (i in start_date:end_date) {
+
+ if (i == start_date) {
+ amd_df$trade_type[i] <- "Buy"
+ amd_df$costs_proceeds[i] <- -amd_df$close[i] * 100
+ amd_df$accumulated_shares[i] <- 100
+
+ } else if (i == end_date) {
+
+ amd_df$trade_type[i] <- "Sell"
+ amd_df$accumulated_shares[i] <- amd_df$accumulated_shares[i - 1]
+ amd_df$costs_proceeds[i] <- amd_df$close[i] * amd_df$accumulated_shares[i]
+
+ } else if (amd_df$close[i] < amd_df$close[i - 1]) {
+ amd_df$trade_type[i] <- "Buy"
+ amd_df$costs_proceeds[i] <- -amd_df$close[i] * 100
+ amd_df$accumulated_shares[i] <- amd_df$accumulated_shares[i - 1] + 100
+
+ } else {
+ amd_df$accumulated_shares[i] <- amd_df$accumulated_shares[i - 1]
+ }
+}
+
 ```
 
 
@@ -91,7 +169,16 @@ After running your algorithm, check if the trades were executed as expected. Cal
 - ROI Formula: $$\text{ROI} = \left( \frac{\text{Total Profit or Loss}}{\text{Total Capital Invested}} \right) \times 100$$
 
 ```r
-# Fill your code here
+# Total profitability was calculated by taking the sum of the costs_proceeds column - noting
+that all BUY trades were denoted as negative values to reflect as cash outflows.
+profit <- sum(amd_df$costs_proceeds, na.rm = TRUE)
+print("Profitability:")
+
+# ROI was calculated as the net return from investment divided by the cost of investment
+InvCost <- sum(amd_df$costs_proceeds[start_date: end_date - 1], na.rm = TRUE)
+Net_Return <- sum(amd_df$costs_proceeds[end_date])
+ROI <- (Net_Return/(InvCost*-1) - 1)*100
+print("ROI:")
 ```
 
 ### Step 5: Profit-Taking Strategy or Stop-Loss Mechanisum (Choose 1)
@@ -100,7 +187,39 @@ After running your algorithm, check if the trades were executed as expected. Cal
 
 
 ```r
-# Fill your code here
+# A stop_loss_limit variable was created to set the maximum day-on-day loss before half of th
+e accumulated shares were to be sold.
+stop_loss_limit <- -0.03
+for (i in start_date:end_date) {
+
+ if (i == start_date) {
+ amd_df$trade_type[i] <- "Buy"
+ amd_df$costs_proceeds[i] <- -amd_df$close[i] * 100
+ amd_df$accumulated_shares[i] <- 100
+ } else if (i == end_date) {
+ amd_df$trade_type[i] <- "Sell"
+ amd_df$accumulated_shares[i] <- amd_df$accumulated_shares[i - 1]
+ amd_df$costs_proceeds[i] <- amd_df$close[i] * amd_df$accumulated_shares[i]
+
+ # An additional column to implement the stop-loss mechanism was added. If the % drop of t
+he current closing price from the previous closing price was greater than 3.00%, then hal
+f of AMD's shares were sold. The accumulated_shares were also halved to reflect this change i
+n holdings.
+ } else if (amd_df$close[i]/amd_df$close[i-1] - 1 <= stop_loss_limit) {
+ amd_df$trade_type[i] <- "Sell"
+ amd_df$accumulated_shares[i] <- amd_df$accumulated_shares[i-1]/2
+ amd_df$costs_proceeds[i] <- amd_df$close[i]*(amd_df$accumulated_shares[i-1]/2)
+
+ } else if (amd_df$close[i] < amd_df$close[i - 1]) {
+ amd_df$trade_type[i] <- "Buy"
+ amd_df$costs_proceeds[i] <- -amd_df$close[i] * 100
+ amd_df$accumulated_shares[i] <- amd_df$accumulated_shares[i - 1] + 100
+
+ } else {
+ amd_df$accumulated_shares[i] <- amd_df$accumulated_shares[i - 1]
+ }
+}
+
 ```
 
 
@@ -110,10 +229,35 @@ After running your algorithm, check if the trades were executed as expected. Cal
 
 
 ```r
-# Fill your code here and Disucss
+# Calculation of Profitability - sum of costs proceeds column
+profit <- sum(amd_df$costs_proceeds, na.rm = TRUE)
+print("Profitability:")
+print(profit)
+
+# Calculation of ROI - SALE revenue divided by share BUY costs.
+InvCost <- sum(amd_df$costs_proceeds[start_date: end_date - 1], na.rm = TRUE)
+Net_Return <- sum(amd_df$costs_proceeds[end_date])
+ROI <- (Net_Return/(InvCost*-1) - 1)*100
+print("ROI:")
+print(ROI)
+
 ```
 
-Sample Discussion: On Wednesday, December 6, 2023, AMD CEO Lisa Su discussed a new graphics processor designed for AI servers, with Microsoft and Meta as committed users. The rise in AMD shares on the following Thursday suggests that investors believe in the chipmaker's upward potential and market expectations; My first strategy earned X dollars more than second strategy on this day, therefore providing a better ROI.
+Using a stop-less mechanism, setting the maximum day-on-day percentage loss to -3.00% increased ROI by
+188.63%, at a profit of $73,459. Between the 11/03/2024 and the final data point of 17/05/2024, AMD
+experienced a significant amount of growth due to industry tailwinds and performance. However, its position as
+a high-growth tech stock also means that its share price is more susceptible to volatility and market concerns.
+A -3.00% stop-loss mechanism ensures that the trading strategy is robust and can manage this volatility. For
+instance, on the 15th of February 2023, Federal Reserve Chairman Jerome Powell indicated that the central
+bank would need more evidence of easing inflation before cutting interest rates. Accordingly, AMD’s share price
+dropped by 6.00% from $85.18 to $80.08 on the 16th of February. Its share price did not recover and move
+back to ~ $85 until the 8th of March. The stop-loss mechanism’s ‘SELL’ trade on the 16th of February as a
+result of the 6.00% decline allowed the algorithm to cash in on the share price before it declined further, whilst
+also enabling it to buy at the lower price.
+A day-on-day percentage loss was also used rather than a rolling average % loss due to AMD’s growth over
+this period. Appling a rolling average was ultimately ineffective, as it would lead to significant sales early (as the
+share price was increasing strongly), and no sales late in the period due to previously weaker share price
+pulling down the average.
 
 
 
